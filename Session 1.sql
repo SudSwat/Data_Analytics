@@ -155,9 +155,51 @@ group by st.first_name,st.last_name,r.staff_id
 select first_name, last_name,rental_count
 from staff_performance order by rental_count desc;
 
-
+use sakila;
 -- Write a query that selects customer_id, payment_id, and amount from the payment table. Add a fourth column that calculates the maximum (MAX) amount 
 -- for each customer using the OVER() clause with a PARTITION BY on customer_id
+select customer_id,payment_id,amount,max(amount) over( partition by customer_id) overall_max
+from payment;
+
+
+-- Category A: Subqueries & Derived Tables (Intermediate)
+-- The Inactive List: "We need a list of all customer email addresses for customers who are currently marked as active in our system but haven't rented a 
+-- single movie in the last 30 days."
+select * from customer where active = 1 and customer_id not in
+(
+select customer_id from rental 
+where rental_date >= date_sub((select max(rental_date) from rental),interval 30 day)
+);
+
+
+select * from rental where customer_id in (1,2,3,4,6,8,10) order by rental_date desc, customer_id;
+
+-- Above Average Spend: "Show me the first and last names of customers whose total lifetime spending is strictly greater than the average lifetime spending 
+-- of all customers."
+select cust.first_name, cust.last_name,spending_greater_avg.total_spending from customer cust
+join (
+select customer_id,sum(amount)total_spending from payment
+where amount > (select  avg(amount) avg_customer from payment)
+group by customer_id
+)spending_greater_avg on cust.customer_id = spending_greater_avg.customer_id;
+
+select cust.first_name, cust.last_name,spending_greater_avg.total_spending from customer cust
+join (
+select customer_id,sum(amount)total_spending from payment
+group by customer_id
+having total_spending > (select  avg(total_lifetime_spend.total_payment) total_avg from 
+(select sum(amount) as total_payment from payment group by customer_id) as total_lifetime_spend)
+)spending_greater_avg on cust.customer_id = spending_greater_avg.customer_id; 
+
+-- The Executive's Film Check: "Find the titles of all films that have a rental rate higher than the average rental rate of films specifically categorized under
+-- 'Action'."
+select f.film_id,f.title,f.rental_rate from film f
+where f.rental_rate >(
+select avg(rental_rate)action_avg_rental_rate from film f
+join film_category fc on fc.film_id = f.film_id
+join category c on c.category_id = fc.category_id
+group by c.name having c.name = "Action");
+-- Underperforming Inventory: "Identify the film_id and title of movies that exist in our inventory but have never been rented out even once."
 
 
 
@@ -168,9 +210,19 @@ from staff_performance order by rental_count desc;
 
 
 
+-- Staff Milestone Tracking: "Provide the names of staff members who have processed more payment transactions than the average number of transactions processed 
+-- per staff member."
 
 
+-- The Heavy Renter Filter: "We want to target our top users. Give me a list of customers who have rented more movies than every single customer living in 'Canada'."
 
+select * from customer cust
+join address addr on addr.address_id = cust.address_id
+join city cty on cty.city_id = addr.city_id
+join country cntr on cntr.country_id = cty.country_id
+where cntr.country = 'Canada';
+
+select customer_id,count(rental_id) rent_count from rental group by customer_id order by rent_count desc; 
 
 
 
