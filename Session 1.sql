@@ -216,7 +216,9 @@ group by c.name having c.name = "Action");
 
 -- The Heavy Renter Filter: "We want to target our top users. Give me a list of customers who have rented more movies than every single customer living in 'Canada'."
 
-select * from customer cust
+
+
+select * from customer custe
 join address addr on addr.address_id = cust.address_id
 join city cty on cty.city_id = addr.city_id
 join country cntr on cntr.country_id = cty.country_id
